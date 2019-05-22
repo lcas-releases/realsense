@@ -1,0 +1,12 @@
+Source: ros-kinetic-ddynamic-reconfigure
+Section: misc
+Priority: extra
+Maintainer: Raymond Kirk <rkirk@lincoln.ac.uk>
+Build-Depends: debhelper (>= 9.0.0), google-mock, librealsense2-dev, librealsense2-dkms, librealsense2-utils, ros-kinetic-catkin, ros-kinetic-dynamic-reconfigure, ros-kinetic-message-generation, ros-kinetic-roscpp, ros-kinetic-rostest, ros-kinetic-std-msgs
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-kinetic-ddynamic-reconfigure
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, librealsense2-dev, librealsense2-dkms, librealsense2-utils, ros-kinetic-dynamic-reconfigure, ros-kinetic-message-runtime, ros-kinetic-roscpp, ros-kinetic-std-msgs
+Description: The ddynamic_reconfigure package
