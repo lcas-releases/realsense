@@ -94,7 +94,7 @@ The topics are of the form: ```/camera/aligned_depth_to_color/image_raw``` etc.
 - **All the rest of the frame_ids can be found in the template launch file: [nodelet.launch.xml](./realsense2_camera/launch/includes/nodelet.launch.xml)**
 - **unite_imu_method**: The D435i and T265 cameras have built in IMU components which produce 2 unrelated streams: *gyro* - which shows angular velocity and *accel* which shows linear acceleration. Each with it's own frequency. By default, 2 corresponding topics are available, each with only the relevant fields of the message sensor_msgs::Imu are filled out.
 Setting *unite_imu_method* creates a new topic, *imu*, that replaces the default *gyro* and *accel* topics. Under the new topic, all the fields in the Imu message are filled out.
- - linear_interpolation: Each message contains the last original value of item A interpolated with the previous value of item A, combined with the last original value of item B on last item B's timestamp. (items A and B are accel and gyro but without specific)
+ - linear_interpolation: Each message contains the last original value of item A interpolated with the previous value of item A, combined with the last original value of item B on last item B's timestamp. Items A and B are accel and gyro interchangeably, according to which type recently arrived from the sensor. The idea is to give the most recent information, united and without repetitions.
  - copy: For each new message, accel or gyro, the relevant fields and timestamp are filled out while the others maintain the previous data.
 - **clip_distance**: remove from the depth image all values above a given value (meters). Disable by giving negative value (default)
 - **linear_accel_cov**, **angular_velocity_cov**: sets the variance given to the Imu readings. For the T265, these values are being modified by the inner confidence value.
@@ -175,6 +175,12 @@ To visualize the pose output and frames in RViz, start:
 roslaunch realsense2_camera demo_t265.launch
 ```
 
+### About Frame ID
+The wrapper publishes static transformations(TFs). The Frame Ids are divided into 3 groups:
+- ROS convention frames: follow the format of <tf_prefix>_<_stream>"_frame" for example: camera_depth_frame, camera_infra1_frame, etc.
+- Original frame coordinate system: with the suffix of <_optical_frame>. For example: camera_infra1_optical_frame. Check the device documentation for specific coordinate system for each stream.
+- base_link: For example: camera_link. A reference frame for the device. In D400 series and SR300 it is the depth frame. In T265, the pose frame.
+
 ## Packages using RealSense ROS Camera
 | Title | Links |
 | ----- | ----- |
@@ -184,6 +190,7 @@ roslaunch realsense2_camera demo_t265.launch
 * This ROS node does not currently support [ROS Lunar Loggerhead](http://wiki.ros.org/lunar).
 * This ROS node does not currently work with [ROS 2](https://github.com/ros2/ros2/wiki).
 * This ROS node currently does not provide the unit-tests which ensure the proper operation of the camera.  Future versions of the node will provide ROS compatible unit-tests.
+* If you get an error saying "Frames didn't arrived within 5 seconds" when launching the camera drivers, the device need a firmware update. Please follow the steps explained in: https://www.intel.com/content/dam/support/us/en/documents/emerging-technologies/intel-realsense-technology/Linux-RealSense-D400-DFU-Guide.pdf
 
 ## License
 Copyright 2018 Intel Corporation
