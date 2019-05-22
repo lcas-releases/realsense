@@ -1,3 +1,28 @@
+## realsense_ros (kinetic) - 2.2.6-1
+
+The packages in the `realsense_ros` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release -y --no-web -t kinetic -r kinetic realsense_ros` on `Wed, 22 May 2019 09:58:28 -0000`
+
+These packages were released:
+- `ddynamic_reconfigure`
+- `realsense2_camera`
+
+Version of package(s) in repository `realsense_ros`:
+
+- upstream repository: https://github.com/LCAS/realsense.git
+- release repository: https://github.com/lcas-releases/realsense.git
+- rosdistro version: `2.2.5-0`
+- old version: `2.2.5-0`
+- new version: `2.2.6-1`
+
+Versions of tools used:
+
+- bloom version: `0.8.0`
+- catkin_pkg version: `0.4.12`
+- rosdep version: `0.15.2`
+- rosdistro version: `0.7.4`
+- vcstools version: `0.1.40`
+
+
 ## realsense_ros (kinetic) - 2.2.5-0
 
 The packages in the `realsense_ros` repository were released into the `kinetic` distro by running `/usr/bin/bloom-release -t kinetic -r kinetic realsense_ros` on `Tue, 14 May 2019 15:45:10 -0000`
