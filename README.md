@@ -1,624 +1,210 @@
-DDynamic-Reconfigure
-==================================================
-[![Build Status](http://venus:8080/view/Integration%20Jobs/job/I40-ddynamic_reconfigure-dubnium-devel_dubnium/badge/icon)](http://venus:8080/view/Integration%20Jobs/job/I40-ddynamic_reconfigure-dubnium-devel_dubnium/)
+# ROS Wrapper for Intel&reg; RealSense&trade; Devices
+These are packages for using Intel RealSense cameras (D400 series and the SR300) with ROS.
 
-The DDynamic-Reconfigure package (or 2D-reconfig) is a **C++** based extension to Dynamic-Reconfigure (or 1D-reconfig) which allows C++ based nodes to self-initiate.
+## Installation Instructions
 
-## Dependencies
-2D-reconfig depends only on the default packages, not even 1D-reconfig.
+The following instructions support ROS Indigo, on **Ubuntu 14.04**, and ROS Kinetic, on **Ubuntu 16.04**.
 
-## Configuration
-Other than the installation of the package to your workspace, no other configuration is needed.
-The package used is called ``ddynamic_reconfigure``,
-and this both the namespace and the include directory used to implement the program.
+#### The simplest way to install on a clean machine is to follow the instructions on the [.travis.yml](https://github.com/intel-ros/realsense/blob/development/.travis.yml) file. It basically summerize the elaborate instructions in the following 3 steps:
 
-## Implementation
-let us look into the following code, which implements 2D-Reconfig:
-````cpp
-#include <ros/ros.h>
+### Step 1: Install the latest Intel&reg; RealSense&trade; SDK 2.0
+- #### Install from [Debian Package](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md#installing-the-packages) - In that case treat yourself as a developer. Make sure you follow the instructions to also install librealsense2-dev and librealsense-dkms packages.
 
-#include <ddynamic_reconfigure/ddynamic_reconfigure.h>
-#include <ddynamic_reconfigure/param/dd_all_params.h>
+#### OR
+- #### Build from sources by downloading the latest [Intel&reg; RealSense&trade; SDK 2.0](https://github.com/IntelRealSense/librealsense/releases/tag/v2.19.2) and follow the instructions under [Linux Installation](https://github.com/IntelRealSense/librealsense/blob/master/doc/installation.md)
 
-using namespace ddynamic_reconfigure;
+### Step 2: Install the ROS distribution
+- #### Install [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu), on Ubuntu 16.04
 
-void callback(const DDMap& map, int) {
-    ROS_INFO("Reconfigure Request: %d %f %s %s %ld",
-            get(map, "int_param").toInt(), get(map, "double_param").toDouble(),
-            get(map, "str_param").toString().c_str(),
-            get(map, "bool_param").toBool() ? "True" : "False",
-            map.size());
-}
-
-int main(int argc, char **argv) {
-    // ROS init stage
-    ros::init(argc, argv, "ddynamic_tutorials");
-    ros::NodeHandle nh;
-
-    // DDynamic setup stage
-    DDynamicReconfigure dd(nh);
-    dd.add(new DDInt("int_param", 0, "An Integer parameter", 50, 0, 100));
-    dd.add(new DDDouble("double_param", 0, "A double parameter", .5, 0, 1));
-    dd.add(new DDString("str_param", 0, "A string parameter", "Hello World"));
-    dd.add(new DDBool("bool_param", 0, "A Boolean parameter", true));
-    std::map<std::string, int> dict; // An enum to set size
-        dict["Small"] = 0;      // A small constant
-        dict["Medium"] = 1;     // A medium constant
-        dict["Large"] = 2;      // A large constant
-        dict["ExtraLarge"] = 3; // An extra large constant
-    dd.add(new DDEnum("enum_param", 0, "A size parameter which is edited via an enum", 1, dict));
-    dd.start(callback);
-
-    // Actual Server Node code
-    ROS_INFO("Spinning node");
-    ros::spin();
-    return 0;
-}
-````
-This segment of code is used for declaring the configuration file and for setting up the server in place of the node which uses the parameters.
-
-### Breakdown
-
-Let's break down the code line by line:
-```cpp
-#include <ros/ros.h>
-
-#include <ddynamic_reconfigure/ddynamic_reconfigure.h>
-#include <ddynamic_reconfigure/param/dd_all_params.h>
-
-using namespace ddynamic_reconfigure;
+### Step 3: Install Intel&reg; RealSense&trade; ROS from Sources
+- Create a [catkin](http://wiki.ros.org/catkin#Installing_catkin) workspace
+```bash
+mkdir -p ~/catkin_ws/src
+cd ~/catkin_ws/src/
 ```
-In here, we import all needed files:
-* ``<ros/ros.h>`` provides basic ROS management.
-* ``<ddynamic_reconfigure/ddynamic_reconfigure.h>`` provides the 2D-reconfigure API
-* ``<ddynamic_reconfigure/param/dd_all_params.h>`` allows you to use all default parameter types.
+- Clone the latest Intel&reg; RealSense&trade; ROS from [here](https://github.com/intel-ros/realsense/releases) into 'catkin_ws/src/'
 
-The non include line allows us to use classes and functions provided in the ``ddynamic_reconfigure`` namespace
-without mentioning what package they are from.
-
-In contrast to 1D-reconfigure, these do not change.
-
-```cpp
-void callback(const DDMap& map, int) {
-    ROS_INFO("Reconfigure Request: %d %f %s %s %ld",
-            get(map, "int_param").toInt(), get(map, "double_param").toDouble(),
-            get(map, "str_param").toString().c_str(),
-            get(map, "bool_param").toBool() ? "True" : "False",
-            map.size());
-}
+```bash
+catkin_init_workspace
+cd ..
+catkin_make clean
+catkin_make -DCATKIN_ENABLE_TESTING=False -DCMAKE_BUILD_TYPE=Release
+catkin_make install
+echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
+source ~/.bashrc
 ```
 
-This is the callback used when 2D-reconfig receives a parameter change request.
-It takes two parameters: the first is a map of the new configuration mapping from the name of the parameter to the actual parameter object,
-and the second is the level, which is the highest level of severity caused by the parameter change.
-This is calculated by applying the OR operator on all levels of the parameters that changed.
+## Usage Instructions
 
-In this callback the level is not used, but we do print out the new configuration.
+### Start the camera node
+To start the camera node in ROS:
 
-```cpp
-int main(int argc, char **argv) {
-    // ROS init stage
-    ros::init(argc, argv, "ddynamic_tutorials");
-    ros::NodeHandle nh;
+```bash
+roslaunch realsense2_camera rs_camera.launch
 ```
 
-All this section do is initialise our ROS node and its handler.
-This is default stuff you do anyways.
+This will stream all camera sensors and publish on the appropriate ROS topics.
 
-```cpp
-    // DDynamic setup stage
-    DDynamicReconfigure dd(nh);
-    dd.add(new DDInt("int_param", 0, "An Integer parameter", 50, 0, 100));
-    dd.add(new DDDouble("double_param", 0, "A double parameter", .5, 0, 1));
-    dd.add(new DDString("str_param", 0, "A string parameter", "Hello World"));
-    dd.add(new DDBool("bool_param", 0, "A Boolean parameter", true));
+Other stream resolutions and frame rates can optionally be provided as parameters to the 'rs_camera.launch' file.
+
+### Published Topics
+The published topics differ according to the device and parameters.
+After running the above command with D435i attached, the following list of topics will be available (This is a partial list. For full one type `rostopic list`):
+- /camera/color/camera_info
+- /camera/color/image_raw
+- /camera/depth/camera_info
+- /camera/depth/image_rect_raw
+- /camera/extrinsics/depth_to_color
+- /camera/extrinsics/depth_to_infra1
+- /camera/extrinsics/depth_to_infra2
+- /camera/infra1/camera_info
+- /camera/infra1/image_rect_raw
+- /camera/infra2/camera_info
+- /camera/infra2/image_rect_raw
+- /camera/gyro/imu_info
+- /camera/gyro/sample
+- /camera/accel/imu_info
+- /camera/accel/sample
+
+The "/camera" prefix is the default and can be changed. Check the rs_multiple_devices.launch file for an example.
+If using D435 or D415, the gyro and accel topics wont be available. Likewise, other topics will be available when using T265 (see below).
+
+### Launch parameters
+The following parameters are available by the wrapper:
+- **serial_no**: will attach to the device with the given serial number. Default, attach to available RealSense device in random.
+- **rosbag_filename**: Will publish topics from rosbag file.
+- **initial_reset**: On occasions the device was not closed properly and due to firmware issues needs to reset. If set to true, the device will reset prior to usage.
+- **align_depth**: If set to true, will publish additional topics with the all the images aligned to the depth image.</br>
+The topics are of the form: ```/camera/aligned_depth_to_color/image_raw``` etc.
+- **filters**: any of the following options, separated by commas:</br>
+ - ```colorizer```: will color the depth image. On the depth topic an RGB image will be published, instead of the 16bit depth values .
+ - ```pointcloud```: will add a pointcloud topic `/camera/depth/color/points`. The texture of the pointcloud can be modified in rqt_reconfigure (see below) or using the parameters: `pointcloud_texture_stream` and `pointcloud_texture_index`. Run rqt_reconfigure to see available values for these parameters.
+ - The following filters have detailed descriptions in : https://github.com/IntelRealSense/librealsense/blob/master/doc/post-processing-filters.md
+   - ```disparity``` - convert depth to disparity before applying other filters and back.
+   - ```spatial``` - filter the depth image spatially.
+   - ```temporal``` - filter the depth image temporally.
+   - ```hole_filling``` - apply hole-filling filter.
+   - ```decimation``` - reduces depth scene complexity.
+- **enable_sync**: gathers closest frames of different sensors, infra red, color and depth, to be sent with the same timetag. This happens automatically when such filters as pointcloud are enabled.
+- ***<stream_type>*_width**, ***<stream_type>*_height**, ***<stream_type>*_fps**: <stream_type> can be any of *infra, color, fisheye, depth, gyro, accel, pose*. Sets the required format of the device. If the specified combination of parameters is not available by the device, the stream will not be published. Setting a value to 0, will choose the first format in the inner list. (i.e. consistent between runs but not defined). Note: for gyro accel and pose, only _fps option is meaningful.
+- **enable_*<stream_name>***: Choose whether to enable a specified stream or not. Default is true. <stream_name> can be any of *infra1, infra2, color, depth, fisheye, fisheye1, fisheye2, gyro, accel, pose*.
+- **tf_prefix**: By default all frame's ids have the same prefix - `camera_`. This allows changing it per camera.
+- **base_frame_id**: defines the frame_id all static transformations refers to.
+- **odom_frame_id**: defines the origin coordinate system in ROS convention (X-Forward, Y-Left, Z-Up). pose topic defines the pose relative to that system.
+- **All the rest of the frame_ids can be found in the template launch file: [nodelet.launch.xml](./realsense2_camera/launch/includes/nodelet.launch.xml)**
+- **unite_imu_method**: The D435i and T265 cameras have built in IMU components which produce 2 unrelated streams: *gyro* - which shows angular velocity and *accel* which shows linear acceleration. Each with it's own frequency. By default, 2 corresponding topics are available, each with only the relevant fields of the message sensor_msgs::Imu are filled out.
+Setting *unite_imu_method* creates a new topic, *imu*, that replaces the default *gyro* and *accel* topics. Under the new topic, all the fields in the Imu message are filled out.
+ - linear_interpolation: Each message contains the last original value of item A interpolated with the previous value of item A, combined with the last original value of item B on last item B's timestamp. Items A and B are accel and gyro interchangeably, according to which type recently arrived from the sensor. The idea is to give the most recent information, united and without repetitions.
+ - copy: For each new message, accel or gyro, the relevant fields and timestamp are filled out while the others maintain the previous data.
+- **clip_distance**: remove from the depth image all values above a given value (meters). Disable by giving negative value (default)
+- **linear_accel_cov**, **angular_velocity_cov**: sets the variance given to the Imu readings. For the T265, these values are being modified by the inner confidence value.
+- **hold_back_imu_for_frames**: Images processing takes time. Therefor there is a time gap between the moment the image arrives at the wrapper and the moment the image is published to the ROS environment. During this time, Imu messages keep on arriving and a situation is created where an image with earlier timestamp is published after Imu message with later timestamp. If that is a problem, setting *hold_back_imu_for_frames* to *true* will hold the Imu messages back while processing the images and then publish them all in a burst, thus keeping the order of publication as the order of arrival. Note that in either case, the timestamp in each message's header reflects the time of it's origin.
+- **topic_odom_in**: For T265, add wheel odometry information through this topic. The code refers only to the *twist.linear* field in the message.
+- **calib_odom_file**: For the T265 to include odometry input, it must be given a [configuration file](https://github.com/IntelRealSense/librealsense/blob/master/unit-tests/resources/calibration_odometry.json). Explanations can be found [here](https://github.com/IntelRealSense/librealsense/pull/3462). The calibration is done in ROS coordinates system.
+- **publish_odom_tf**: If True (default) publish TF from odom_frame to pose_frame.
+
+
+### RGBD Point Cloud
+Here is an example of how to start the camera node and make it publish the RGBD point cloud using aligned depth topic.
+```bash
+roslaunch realsense2_camera rs_camera.launch filters:=pointcloud
+```
+Then open rviz to watch the pointcloud:
+<p align="center"><img src="https://user-images.githubusercontent.com/17433152/35396613-ddcb1d6c-01f5-11e8-8887-4debf178d0cc.gif" /></p>
+
+### Aligned Depth Frames
+Here is an example of how to start the camera node and make it publish the aligned depth stream to other available streams such as color or infra-red.
+```bash
+roslaunch realsense2_camera rs_camera.launch align_depth:=true
+```
+<p align="center"><img width=50% src="https://user-images.githubusercontent.com/17433152/35343104-6eede0f0-0132-11e8-8866-e6c7524dd079.png" /></p>
+
+### Set Camera Controls Using Dynamic Reconfigure Params
+The following command allow to change camera control values using [http://wiki.ros.org/rqt_reconfigure].
+```bash
+rosrun rqt_reconfigure rqt_reconfigure
+```
+<p align="center"><img src="https://user-images.githubusercontent.com/40540281/55330573-065d8600-549a-11e9-996a-5d193cbd9a93.PNG" /></p>
+
+### Work with multiple cameras
+Here is an example of how to start the camera node and streaming with two cameras using the [rs_multiple_devices.launch](./realsense2_camera/launch/rs_multiple_devices.launch).
+```bash
+roslaunch realsense2_camera rs_multiple_devices.launch serial_no_camera1:=<serial number of the first camera> serial_no_camera2:=<serial number of the second camera>
+```
+The camera serial number should be provided to `serial_no_camera1` and `serial_no_camera2` parameters. One way to get the serial number is from the [rs-enumerate-devices](https://github.com/IntelRealSense/librealsense/blob/58d99783cc2781b1026eeed959aa3f7b562b20ca/tools/enumerate-devices/readme.md) tool.
+```bash
+rs-enumerate-devices | grep Serial
 ```
 
-This is we start using 2D-reconfig. First, we initialise our 2D-reconfig object.
-Then, we start adding parameters to it. In 2D-reconfig, adding parameters is not just a simple function,
-but you have to add a parameter object (an instance of the abstract ``DDParam`` class).
-Let's look into the param objects above to see some common factors:
-* The type of the parameter is declared first by specifying ``new DDType()``.
-  For example, adding a new int parameter is done by doing ``dd.add(new DDInt(...))``
+Another way of obtaining the serial number is connecting the camera alone, running
+```bash
+roslaunch realsense2_camera rs_camera.launch
+```
+and looking for the serial number in the log printed to screen under "[INFO][...]Device Serial No:".
 
-* Within the param constructor, the first argument is the name of the parameter.
-  For example, in our int parameter, the name is set to ``"int_param"``.
+Another way to use multiple cameras is running each from a different terminal. Make sure you set a different namespace for each camera using the "camera" argument:
 
-* The second argument is the level of the parameter, that is,
-  what needs to be reset or redone in the software/hardware in order to reapply this parameter?
-  Usually, the higher the level, the more drastic measures you need to take to re-implement the parameter.
+```bash
+roslaunch realsense2_camera rs_camera.launch camera:=cam_1 serial_no:=<serial number of the first camera>
+roslaunch realsense2_camera rs_camera.launch camera:=cam_2 serial_no:=<serial number of the second camera>
+...
 
-* The third parameter is the description of the parameter. This is great for documentation and for commandline tools.
+```
+## Using T265 ##
+**Important Notice:** For wheeled robots, odometer input is a requirement for robust and accurate tracking. The relevant APIs will be added to librealsense and ROS/realsense in upcoming releases. Currently, the API is available in the [underlying device driver](https://github.com/IntelRealSense/librealsense/blob/master/third-party/libtm/libtm/include/TrackingDevice.h#L508-L515).
 
-* The fourth parameter is the default value. Depending on the type of parameter, each may treat this argument differently.
+### Start the camera node
+To start the camera node in ROS:
 
-* ``DDInt`` and ``DDDouble`` have a fifth and sixth optional parameters: minimum and maximum allowed values.
-  While the server side does not care about these values, the client may want to know these.
-
-* It is important to note that the first 4 arguments are standardised for all param types,
-  but from there onwards each param type may choose what to place there.
-
-```cpp
-    std::map<std::string, int> dict; // An enum to set size
-        dict["Small"] = 0;      // A small constant
-        dict["Medium"] = 1;     // A medium constant
-        dict["Large"] = 2;      // A large constant
-        dict["ExtraLarge"] = 3; // An extra large constant
-    dd.add(new DDEnum("enum_param", 0, "A size parameter which is edited via an enum", 1, dict));
+```bash
+roslaunch realsense2_camera rs_t265.launch
 ```
 
-Here we add an int-enum parameter to our 2D-reconfig. ``DDEnum`` is an int like parameter that also contains a dictionary
-to remap predefined strings to usable integers. This param type has a required 5th argument (in contract to ``DDInt`` having 5th and 6th optional)
-which is a ``std::map<std::string,int>`` object mapping string values to integers.
+This will stream all camera sensors and publish on the appropriate ROS topics.
 
-In the code above we can see how to create a dictionary of our liking:
+The T265 sets its usb unique ID during initialization and without this parameter it wont be found.
+Once running it will publish, among others, the following topics:
+- /camera/odom/sample
+- /camera/accel/sample
+- /camera/gyro/sample
+- /camera/fisheye1/image_raw
+- /camera/fisheye2/image_raw
 
-* we first initiate a map and name it with ``std::map<std::string,int> dict``.
-* we then populate it with the format ``dict[<key>] = <value>`` where ``<key>`` is the string alias for the value,
-  and ``<value>`` is the value you want to give an alias to.
-
-This dictionary is then added into the enum as the 5th argument.
-
-```cpp
-    dd.start(callback);
-
-    // Actual Server Node code
-    ROS_INFO("Spinning node");
-    ros::spin();
-    return 0;
-}
+To visualize the pose output and frames in RViz, start:
+```bash
+roslaunch realsense2_camera demo_t265.launch
 ```
 
-This section of code actually allows 2D-reconfigure to start working. Let's look into the two sections:
-* ``dd.start(callback)`` sets the callback of 2D-reconfigure to be the method ``callback`` and jump starts 2D-reconfigure.
-* ``ros::spin()`` allows 2D-reconfigure to listen to parameter-change requests.
-  Although the node now requires a spin, this does not mean you cannot add your own service-servers and subscribers to this node.
-  ``ros::spin()`` can take care of multiple subscribers/service-servers in the same spinners (although in the same thread).
-  If you want 2D-reconfig and your actual node to work on separate threads, consider using ``ros::MultiThreadedSpinner``.
-  2D-reconfigure only uses 1 service-server and no subscribers, so 1 thread for it is more than enough.
-
-### How does this compare with Dynamic-Reconfigure?
-Let's go over the main differences between 2D-reconfig's implementation with 1D-reconfig's implementation:
-
-#### Parameter Generation
-
-**1D-Reconfigure:**
-```python
-gen = ParameterGenerator()
-
-gen.add("int_param",    int_t,    0, "An Integer parameter", 50,  0, 100)
-gen.add("double_param", double_t, 0, "A double parameter",    .5, 0,   1)
-gen.add("str_param",    str_t,    0, "A string parameter",  "Hello World")
-gen.add("bool_param",   bool_t,   0, "A Boolean parameter",  True)
-
-size_enum = gen.enum([ gen.const("Small",      int_t, 0, "A small constant"),
-                       gen.const("Medium",     int_t, 1, "A medium constant"),
-                       gen.const("Large",      int_t, 2, "A large constant"),
-                       gen.const("ExtraLarge", int_t, 3, "An extra large constant")],
-                     "An enum to set size")
-
-gen.add("size", int_t, 0, "A size parameter which is edited via an enum", 1, 0, 3, edit_method=size_enum)
-
-exit(gen.generate(PACKAGE, "dynamic_tutorials", "Tutorials"))
-```
-**2D-Reconfigure:**
-```cpp
-DDynamicReconfigure dd(nh);
-
-dd.add(new DDInt("int_param", 0, "An Integer parameter", 50, 0, 100));
-dd.add(new DDDouble("double_param", 0, "A double parameter", .5, 0, 1));
-dd.add(new DDString("str_param", 0, "A string parameter", "Hello World"));
-dd.add(new DDBool("bool_param", 0, "A Boolean parameter", true));
-
-std::map<std::string, int> dict; // An enum to set size
-    dict["Small"] = 0;      // A small constant
-    dict["Medium"] = 1;     // A medium constant
-    dict["Large"] = 2;      // A large constant
-    dict["ExtraLarge"] = 3; // An extra large constant
-
-dd.add(new DDEnum("enum_param", 0, "A size parameter which is edited via an enum", 1, dict));
-
-dd.start(callback);
-```
-While these two code snippets accomplish the exact same things, they do so in different manners:
-* 1D-reconfig specifies the type of the parameter using a string (for example ``int_t = "int"``), while 2D-reconfig uses classes to accomplish that (``new DDInt`` in place of ``int_t``).
-  
-  Why classes instead of strings? In contrast to strings, classes can be extended and modified so they get a special treatment.
-  Take enums for example. In order to work with enums, 1D-reconfig had to add a whole new parameter input to handle the dictionary of the enums,
-  while 2D-reconfig simply extended the ``DDInt`` class (to ``DDEnum``) to handle dictionaries.
-  
-  This will be discussed more thoroughly on "Architecture".
-  
-* Enums are dramatically different. 
-    * 2D-reconfig uses well defined standard C++ objects for its dictionaries,
-      while 1D-reconfig defines its own constants and enums. This allows you to use well known and reliable API instead of a loosely defined one.
-  
-    * while ``DDEnum`` is an extension of ``DDInt``, you do not need to mention that. The API takes care of that for you!
-      An added bonus of this is that the enums automatically inference their boundaries, you don't need to mention ``int_t, max, min``.
-      
-    * 2D-reconfig's supported physical enums have been stripped of descriptions and the constants were as well.
-      This is because the descriptions were not used anywhere. You can still make enums with const and enum descriptions, but they will not be used anywhere.
-      Adding line comments to the parameters is a good alternative.
-
-* 2D-reconfig requires a node handler. This is due to how 1D-reconfigure handles parameters in its ROS architecture for C++.
-
-* all parameters provided in 1D-reconfig's last line are not needed in 2D-reconfig, which requires nothing.
-
-#### Callback & Server
-
-**1D-Reconfigure:**
-```cpp
-void callback(dynamic_tutorials::TutorialsConfig &config, uint32_t level) {
-  ROS_INFO("Reconfigure Request: %d %f %s %s %d", 
-            config.int_param, config.double_param, 
-            config.str_param.c_str(), 
-            config.bool_param?"True":"False", 
-            config.size);
-}
-
-int main(int argc, char **argv) {
-  ros::init(argc, argv, "dynamic_tutorials");
-
-  dynamic_reconfigure::Server<dynamic_tutorials::TutorialsConfig> server;
-  dynamic_reconfigure::Server<dynamic_tutorials::TutorialsConfig>::CallbackType f;
-
-  f = boost::bind(&callback, _1, _2);
-  server.setCallback(f);
-
-  ROS_INFO("Spinning node");
-  ros::spin();
-  return 0;
-}
-```
-**2D-Reconfigure:**
-```cpp
-void callback(const DDMap& map, int) {
-    ROS_INFO("Reconfigure Request: %d %f %s %s %ld",
-            get(map, "int_param").toInt(), get(map, "double_param").toDouble(),
-            get(map, "str_param").toString().c_str(),
-            get(map, "bool_param").toBool() ? "True" : "False",
-            map.size());
-}
-
-int main(int argc, char **argv) {
-    ros::init(argc, argv, "ddynamic_tutorials");
-    ros::NodeHandle nh;
-
-    DDynamicReconfigure dd(nh);
-    
-    dd.start(callback);
-
-    ROS_INFO("Spinning node");
-    ros::spin();
-    return 0;
-}
-```
-
-* The callback of the 1D-reconfigure requires a custom data-type per configuration. This is problematic, especially if you want dynamic parameters like vectors.
-  2D-reconfigure uses ``DDMap`` as its parameter container, which is generic and can work over multiple config types (and therefore can handle vectors)
-  
-  This also changes the way to access these parameters.
-  ``DDMap`` is actually a map from string to a pointer to the generic parameter used with the parameter generator.
-  This allows you to use all functions ``std::map`` provides, and regardless, 2D-reconfigure has additional API that could be used on ``DDMap`` objects,
-  such as ``ddynamic_reconfigure::get`` and ``ddynamic_reconfigure::at``.
-  
-  The generic interface no longer gives you a specific primitive value, but rather an instance of ``ddynamic_reconfigure::Value``,
-  which must be converted into a primitive type. While a bit cumbersome, this does allow rather implicit conversion between types.
-  
-* The 2D-reconfig server does not internally initialise a node handler. This means you can implement 2D-reconfigure within the node that actually uses the parameters.
-
-* 2D-reconfig actually needs you to start it. While a disadvantage, it is done anyways on 1D-reconfig,
-  and 2D-reconfig also has ``DDynamicReconfigure::setCallback`` to change callbacks, so nothing much is lost.
-
-* again, 2D-reconfig does not require you to have a custom made config class, making your init code a lot shorter.
-
-* ``start`` is a bit more fluid and allows you to place member function pointers or regular function pointers instead of ``boost::function``.
-  This helps clean up the code.
-
-### Simplified API
-
-#### Value
-
-The Value class is used to wrap all basic data-types (bool,int,double,string) in something generic.
-The value object always stores an explicit basic data-type.
-This has three main uses:
-
-1. Values can represent all basic data-types. This means that arguments that need something relatively similar from all basic data-types can now just use the value in its argument.
-   This also goes for when you need to return something that is of different data-types from different classes (one can only return integer, other can only return strings).
-
-2. Values can be explicitly converted to all basic data-types they wrap. 
-   This means that converting an int to a string is far easier.
-
-3. Values store the type they were instantiated with. This can be tested against to get the original piece of data the value stored.
-
-##### Constructors
-
-``Value(int val)``,``Value(double val)``,``Value(bool val)``,``Value(string val)``,``Value(const char* val)``
-are all constructors that assign the value type to the type they are given (with the exception for ``const char*`` which returns string and is there for convenience),
-then store the value itself in its basic form.
-
-##### Getter
-
-There is only one true getter: ``getType()``, which returns the string name of the type it stores.
-
-##### Converters
-
-Each basic data-type has its own converter: ``toInt()``,``toDouble()``,``toBool()``,``toString()``.
-When one is called, the value will attempt to return a converted form of what it stores into the required data-type.
-The value does not just use an implicit cast. It tries to convert the data-type according to common needs that are not answered with other one-liners.
-For example, converting a string to an int, a Value will first attempt to scan the string and see it fits a numeric format.
-If it succeeds, it will convert and return that number. Otherwise, it will return the next best thing: a hash value of the string.
-
-#### DDParam
-
-The DDParam class is *the* abstraction of all parameter types, and is the template for creating them.
-At this point, not much is known about the parameter, but the following:
-
-* the parameter has a name
-* the parameter has a severity level
-* the parameter has a description
-* the parameter contains some value, though its type and contents are unknown.
-
-Other than storing data, the parameter also has specialised methods to interact with DDynamicReconfigure in order to apply changes and send them.
-These methods should not be touched by the user.
-
-Since this class is abstract, the class has multiple implementations whicch are not directly exposed but are used,
-so its worth checking out their descriptions.
-
-While this class is abstract, it does have one implemented thing, and that is its stream operator (`<<`) which can be freely used.
-
-##### Generic Constructor
-
-While DDParam is abstract, all of its concrete implementations should follow this guideline:
-```cpp
-DD<Type>(const string &name, unsigned int level, const string &description, <some-type> def, <extra-args>)
-```
-Where:
-* ``<Type>`` is the type name you are implementing
-* ``name`` is the reference name
-* ``level`` is the severity level
-* ``description`` is the object's description
-* ``def`` is the default value and the first value stored right after construction.
-
-You may then include extra arguments as you wish, required or optional.
-
-##### Getters
-
-parameters have three well known getters:
-* ``getName()`` gets the name of the parameter.
-* ``getLevel()`` gets the severity level of the parameter.
-* ``getValue()`` gets the value the parameter stores.
-
-Other getters, such as "getDesc()", may be added in the future.
-
-the parameters also have a stream (``<<``) operator which can be used to convert said parameters into neat strings.
-
-##### Setter
-
-2D-params are only required to be dynamic with their values,
-so the only setter they are required to have is ``setValue(Value val)``,
-which changes the value the parameter stores.
-
-##### Testers
-
-DDParams are also required to have some out-of-the-box testing features:
-* ``sameType(Value val)`` checks whether or not 
-  the raw value stored in the value is compatible with the given parameter.
-  Compatible is a very broad word in this scenario.
-  It means that the value can be placed in the parameter regardless of other limitations.
-
-* ``sameValue(Value val)`` checks whether or not the value stored in the value object,
-  when converted to the type of the internal value, are equal. This acts regardless of type.
-
-#### DDynamicReconfigure
-
-The DDynamicReconfigure class is the main class responsible for keeping track of parameters basic properties,
-values, descriptions, etc.
-
-It is also responsible of handling callbacks, config change requests, description setup and config setup, and the ROS publishers and services.
-
-To operate a DDynamic instance, you must go through the following procedure:
-
-1. Construct a DDynamicReconfigure instance with proper handling.
-2. Add parameters to the instance as needed with any of the ``add`` methods.
-3. Start the ROS services with any of the ``start`` methods.
-4. If you need to change the callback after startup you may do so using ``setCallback``.
-5. When you need to get any of the stored parameters, call either ``get`` or ``at`` on this instance,
-   rather than through the callback.
-
-##### Constructor
-
-DDynamicReconfigure has one sole constructor: ``DDynamicReconfigure(NodeHandle &nh)`` which constructs the instance and
-sets the handler to the one you are using.
-
-##### Parameter Handling
-
-All parameter handling is done through registration using an ``add`` function:
-
-* ``add(DDPtr param)`` is the main function which uses boost's shared pointers to represent the data in a virtual manner (and allows polymorphism)
-* ``add(DDParam *param)`` is a convenience function which converts ``param`` into a shared pointer and uses the other add function.
-
-Both of these functions will add a generic ``DDParam`` object into the given instance and will index it for later searches.
-Perhaps in the future a "remove(string name)" function will be added.
-
-##### Callback Handling & Startup
-
-Below are the two default functions that are used by the rest:
-
-* ``start()`` initializes all publishers and services and releases the needed messages for the commandline and other clients.
-* ``setCallback(DDFunc callback)`` sets the triggered callback to the one specified, and triggers nothing else.
-
-There is also ``clearCallback()`` which resets the callback to do nothing when triggered.
-
-Following are convenience function which utilize ``start()`` and ``setCallback()``:
-
-* ``start(DDFunc callback)`` calls start(), then setCallback(callback)
-* ``start(void(*callback)(const DDMap&, int))`` remaps the void pointer to a boost function (of type ``DDFunc``) then calls start(callback)
-* ``template<class T> void start(void(T::*callback)(const DDMap&, int), T *obj)``
-  binds the **member** function into a boost function (of type ``DDFunc``) then calls start(callback)
-
-##### Parameter Fetching
-
-There are multiple proper ways to get the values stored within the DDynamicReconfigure instance:
-
-* through ``at(string name)``: this will get you the pointer to the parameter with the name you specified.
-  If no such parameter exists it will return you a null-pointer (be careful not to de-reference those!)
-
-* through ``get(string name)``: this will get you the value stored in the parameter with the name you specified.
-  If no such parameter exists it will return you a value storing a NULL character.
-
-* through the stream (``<<``) operator: this will convert the 2D-reconfig instance into a string and stream it into the
-  given streamer.
-
-both ``at`` and ``get`` have alternate static versions which apply directly on ``DDMap`` objects.
-
-## Architecture
-
-### Code Design
-
-#### Include Structure:
-
-![](http://www.plantuml.com/plantuml/png/3OnDIuP054Rt_efQjCm9JB8WqcXJ44Nu4hIH-RZgu7p8dNiT_FSDFAk7SqwVI2AnTzMr3Tgn0KPtjHBjwKa8bBbUBAsiE07g60W2rJfw8JEaw46T14aOSmRfhPuG2ZFRXH54XjpTtneuHAcBsJgO4Y5hglTol53S83mFxpzt-FNuyA7KvLDVpAiST3isgg6vu-_VRakj-ZlMCGytpLjPrKCmHVy7)
-
-To operate 2D-reconfigure, you will need to include 2 file types:
-
-* The ``ddynamic_reconfigure`` file, which gives you access to the ``DDynamicReconfigure`` class,
-  the ``DDParam`` class, the ``DDValue`` class, and the toolbox methods.
-  This will allow you to operate on the top level API without caring about what type of parameters you will get.
-
-* the file ``dd_all_params`` or any of the ``DDParam`` implementations. You will need the implementations to insert physical 
-  (and not abstract) parameters into your ``DDynamicReconfigure`` server.
-  As a shortcut, ``dd_all_params`` gives you all basic parameter types (int,double,bool,string,enum) in one include.
-
-As a bonus, you also get two static class-less methods: ``get`` and ``at``.
-
-#### Class Structure:
-
-![](http://www.plantuml.com/plantuml/png/3OnBIyD054Rt_HMwS6d6HmDH43EIZRfgmOBTX7dS96Fc4Uwzqw7_te5lzN7EwOaLSWv-T-kYyTb2Hd-pC6_qAWIgqioEbwmp0PeK6I8t9WMX2b0AeAyC9AozHXMS6H4gCxav8uW2fTlVMxY8MXV6AwAH6BFXPglFEwSLuflyF3wWXDFJYlmrdDpXyNl_yN9e_xhsz-UevKgjFbzWAlBkUQZRzH1jrVy1)
-
-Like the API section shows, there are only 3 major classes: ``DDValue``,``DDParam``,``DDynamicReconfigure``.
-
-The DDValue class is a concrete class which should not be inherited, since it wraps physical values. 
-Each instance stores 5 values: one for each type is can handle, and one to store the type.
-When a value is instantiated, the value is stored in its raw form according to the chosen type,
-and the rest stay with default values. When the value is accessed only then is the value converted (but not saved!)
-
-The DDParam interface class is an abstract class which should be implemented. 
-Its basic implementations (int,double,bool,string) have already been implemented in the standard package.
-These basic forms can also be further extended. For example, DDEnum **extends** DDInt because it has all of the features DDInt has.
-This can be done to other DDParam implementations, and you can also further extend the extended classes (for example, DDInvertibleEnum).
-An example is given at the Extension section if you want to look more into this.
-When anny DDParam implementation is extended, the user has access to everything within the object so that he can do what he needs to.
-
-The DDynamicReconfigure class is the concrete class that does the work against ROS and interfaces with the user.
-Unlike DDValue, this class can be extended, and it has an internal API that can aid users who wish to extend this class.
-In the Extension section below this is elaborated. Keep in mind that extending DDynamicReconfigure is not required.
-While DDynamicReconfigure allows extension, it does not provide full access to everything,
-since the base function of DDynamic should not be modified.
-
-### ROS Design
-
-![](http://www.plantuml.com/plantuml/png/3OnDIyKm44Nt_HMwS6aZg222s8BWgo8QGOHkGZwcRMoJb9b9m_lt1kxcmZcd8zR8EMpDfOzsomuoRXSByqwFGg0kxUnvoIOJe4sH8N9hKn2w0AK0vin0mhbprC5RXL2PoSyPGHGe3tVN3WvHwm8JAMBCbjkz_cTEAyIdVlY-mTFRwxiCgAIHu_JpgORVrG38hzF7ljAz6Oy_MVghsvUwfeFegluF)
-
-Like 1D-reconfigure, 2D-reconfigure is built on two subscribers and one service:
-
-* ``desc_pub_`` publishes to topic "/parameter_descriptions", and is responsible for updating the descriptions of the parameter for commandline.
-* ``update_pub_`` publishes to "/parameter_descriptions", and is responsible for updating the configuration values for commandline and client.
-* ``set_service`` publishes and listens to requests on "/set_parameters", and is used to trigger parameter updates.
-  It also contains the new parameters sent from client or commandline.
-
-Since the DDynamicReconfigure object is held on the server side, so are these ROS entities.
-
-## Extension
-
-***In all of these extensions, make sure to add the proper includes!***
-
-### Adding a new Parameter type
-
-To add a new parameter type, you must either:
-* Extend one of the existing classes
-* Implement the base class, ``DDParam``.
-
-In some cases, you might want your class to extend multiple classes, for example ``DDIntVector`` both implements ``DDVector`` and extends ``DDInt``.
-(``DDVector`` does not exist in the standard param library).
-
-Let us look into an example implementation of the param type "DDIntEnforcer", which will update other parameters to its value when it updates.
-
-```cpp
-#ifndef DDYNAMIC_RECONFIGURE_DD_INT_ENFORCER_PARAM_H
-#define DDYNAMIC_RECONFIGURE_DD_INT_ENFORCER_PARAM_H
-
-#include <ddynamic_reconfigure/param/dd_int_param.h>
-#include <list>
-
-namespace my_dd_reconfig {
-    // class definition
-    class DDIntEnforcer : public DDInt {
-    public:
-
-        void setValue(Value val);
-        
-        // adds a parameter to be enforced by this param.
-        DDIntEnforcer &addEnforced(DDPtr param);
-        
-        // removes a parameter from being enforced by this param.
-        void removeEnforced(DDPtr param);
-
-        /**
-         * creates a new int enforcer param
-         * @param name the name of the parameter
-         * @param level the change level
-         * @param def the default value
-         * @param description details about the parameter
-         * @param max the maximum allowed value. Defaults to INT32_MAX
-         * @param min the minimum allowed value. Defaults to INT32_MIN
-         */
-        inline DDIntEnforcer(const string &name, unsigned int level, const string &description,
-                int def, int max = INT32_MAX, int min = INT32_MIN) :
-                DDInt(name,level,description,def) {};
-
-    protected:
-        list<DDPtr> enforced_params_;
-    };
-    
-    DDIntEnforcer::setValue(Value val) {
-        val_ = val.toInt();
-        for(list<DDPtr>::iterator it = enforced_params_.begin(); it != enforced_params_.end(); ++it) {
-            if(!enforced_params_[it].sameValue(val)) {
-                enforced_params_[it].setValue(val);
-            }
-        }
-    };
-    
-    DDIntEnforcer &DDIntEnforcer::addEnforced(DDPtr param) {
-        enforced_params_.push_back(param);
-        return *this;
-    };
-    
-    void DDIntEnforcer::removeEnforced(DDPtr param) {
-        enforced_params_.remove(param);
-    };
-}
-
-#endif //DDYNAMIC_RECONFIGURE_DD_INT_ENFORCER_PARAM_H
-```
-
-Notice how nothing within this class is private. This allows further extension of this class.
-Moreover, notice that in here we are also using variables inherited from ``DDInt``, specifically ``val_``.
-
-### Extending DDynamic's functions
-
-Extending DDynamicReconfigure means that you need additional functionality from the parameter server which 2D-reconfigure does not provide.
-If that is the case, extending a class from DDynamic gives you access to make new methods as need for the extra functionality,
-and access to the following to make work with DDynamic a bit easier:
-* ``nh_``: this is the node handler used to create all publishers and subscribers in the parent class.
-* ``params_`` this is the current parameter map 2D-reconfig uses to update parameters and add new ones.
-* ``desc_pub_``: As explained before, this is the publisher responsible of updating the descriptions for the parameters and other metadata for the client and commandline.
-* ``update_pub_``: This is the publisher responsible for updating the configuration values for the client and commandline.
-* ``makeDescription()``: This is a helper method that generates a new Description message to be published by ``desc_pub_``.
-  The message can be modified.
-* ``makeConfiguration()``: This is a helper method that generates a new Description message to be published by ``update_pub_``.
-  The message can be modified.
-* ``internalCallback()``: This is a helper method that allows you to call the base param change callback built into 2D-reconfigure.
-
-From there, it's your choice what to do with these.
+### About Frame ID
+The wrapper publishes static transformations(TFs). The Frame Ids are divided into 3 groups:
+- ROS convention frames: follow the format of <tf_prefix>_<_stream>"_frame" for example: camera_depth_frame, camera_infra1_frame, etc.
+- Original frame coordinate system: with the suffix of <_optical_frame>. For example: camera_infra1_optical_frame. Check the device documentation for specific coordinate system for each stream.
+- base_link: For example: camera_link. A reference frame for the device. In D400 series and SR300 it is the depth frame. In T265, the pose frame.
+
+## Packages using RealSense ROS Camera
+| Title | Links |
+| ----- | ----- |
+| ROS Object Analytics | [github](https://github.com/intel/ros_object_analytics) / [ROS Wiki](http://wiki.ros.org/IntelROSProject)
+
+## Known Issues
+* This ROS node does not currently support [ROS Lunar Loggerhead](http://wiki.ros.org/lunar).
+* This ROS node does not currently work with [ROS 2](https://github.com/ros2/ros2/wiki).
+* This ROS node currently does not provide the unit-tests which ensure the proper operation of the camera.  Future versions of the node will provide ROS compatible unit-tests.
+* If you get an error saying "Frames didn't arrived within 5 seconds" when launching the camera drivers, the device need a firmware update. Please follow the steps explained in: https://www.intel.com/content/dam/support/us/en/documents/emerging-technologies/intel-realsense-technology/Linux-RealSense-D400-DFU-Guide.pdf
+
+## License
+Copyright 2018 Intel Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this project except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+**Other names and brands may be claimed as the property of others*
