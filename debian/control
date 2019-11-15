@@ -1,0 +1,12 @@
+Source: ros-melodic-ddynamic-reconfigure
+Section: misc
+Priority: optional
+Maintainer: Raymond Kirk <rkirk@lincoln.ac.uk>
+Build-Depends: debhelper (>= 9.0.0), google-mock, librealsense2-dev, librealsense2-dkms, librealsense2-utils, ros-melodic-catkin, ros-melodic-dynamic-reconfigure, ros-melodic-message-generation, ros-melodic-roscpp, ros-melodic-rostest, ros-melodic-std-msgs
+Homepage: 
+Standards-Version: 3.9.2
+
+Package: ros-melodic-ddynamic-reconfigure
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, librealsense2-dev, librealsense2-dkms, librealsense2-utils, ros-melodic-dynamic-reconfigure, ros-melodic-message-runtime, ros-melodic-roscpp, ros-melodic-std-msgs
+Description: The ddynamic_reconfigure package
